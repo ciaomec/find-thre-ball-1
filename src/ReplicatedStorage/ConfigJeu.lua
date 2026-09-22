@@ -82,11 +82,31 @@ local PALIERS = {
 	JACKPOT2 = { ArcEnCiel = 40, Secret = 60 },
 }
 
--- oeuf(identifiant, nom affiché, fréquence, secondes d'éclosion, multiplicateur de valeur, palier, couleur)
-local function oeuf(id, nom, poids, temps, bonus, palier, couleur)
-	return { Id = id, Nom = nom, Poids = poids, TempsEclosion = temps, Bonus = bonus,
+-- oeuf(identifiant, nom affiché, fréquence, multiplicateur de valeur, palier, couleur)
+-- Le temps d'éclosion n'est plus écrit ici : il est calculé plus bas,
+-- à partir du numéro de la zone et du rang de l'œuf dans sa zone.
+local function oeuf(id, nom, poids, bonus, palier, couleur)
+	return { Id = id, Nom = nom, Poids = poids, Bonus = bonus,
 	         Chances = PALIERS[palier], Couleur = couleur }
 end
+
+---------------------------------------------------------------
+-- ÉCLOSION
+-- L'œuf éclôt tout seul dès qu'il est posé sur un socle (pas de touche à presser).
+-- Les durées sont exponentielles : chaque zone plus lointaine multiplie l'attente,
+-- et dans une zone chaque œuf plus rare la multiplie encore.
+-- Du plus court (Ping-pong Blanche, 15 s) au plus long (Ballon d'Or, 6 h).
+---------------------------------------------------------------
+ConfigJeu.Eclosion = {
+	Automatique = true,      -- démarre seule dès la pose sur le socle
+	TempsDepart = 15,        -- secondes : zone 1, premier œuf
+	FacteurZone = 1.724,     -- ×1,72 à chaque zone plus lointaine
+	FacteurRang = 1.95,      -- ×1,95 à chaque œuf plus rare dans la zone
+	TempsMax = 21600,        -- 6 h, jamais plus
+}
+
+-- Pour forcer la durée d'un œuf précis : Perso["FO_BallonOr"] = 18000
+ConfigJeu.Eclosion.Perso = {}
 
 ---------------------------------------------------------------
 -- ZONES ET LEURS ŒUFS
@@ -95,81 +115,81 @@ ConfigJeu.Zones = {
 	{ Numero = 1, Sport = "Ping-pong", ValeurBase = 25, Taille = 1.0, VitesseGarde = 0, NbGardes = 0,
 	  Couleur = Color3.fromRGB(250, 250, 250), Couleur2 = Color3.fromRGB(235, 120, 40),
 	  Oeufs = {
-		oeuf("PP_Blanche",  "Blanche",   40, 15,  1,   "T1", Color3.fromRGB(250, 250, 250)),
-		oeuf("PP_Orange",   "Orange",    26, 30,  1.6, "T2", Color3.fromRGB(240, 130, 40)),
-		oeuf("PP_Picot",    "Picot",     18, 60,  2.4, "T3", Color3.fromRGB(120, 200, 235)),
-		oeuf("PP_Neon",     "Néon",      10, 120, 3.6, "T4", Color3.fromRGB(80, 255, 230)),
-		oeuf("PP_Etoilee",  "Étoilée",   5,  240, 6,   "T5", Color3.fromRGB(255, 225, 90)),
-		oeuf("PP_Champion", "Champion",  1,  600, 14,  "T6", Color3.fromRGB(255, 200, 40)),
+		oeuf("PP_Blanche",  "Blanche",  40,   1, "T1", Color3.fromRGB(250, 250, 250)),
+		oeuf("PP_Orange",   "Orange",   26, 1.6, "T2", Color3.fromRGB(240, 130, 40)),
+		oeuf("PP_Picot",    "Picot",    18, 2.4, "T3", Color3.fromRGB(120, 200, 235)),
+		oeuf("PP_Neon",     "Néon",     10, 3.6, "T4", Color3.fromRGB(80, 255, 230)),
+		oeuf("PP_Etoilee",  "Étoilée",   5,   6, "T5", Color3.fromRGB(255, 225, 90)),
+		oeuf("PP_Champion", "Champion",  1,  14, "T6", Color3.fromRGB(255, 200, 40)),
 	} },
 
 	{ Numero = 2, Sport = "Golf", ValeurBase = 200, Taille = 1.2, VitesseGarde = 26, NbGardes = 2,
 	  Couleur = Color3.fromRGB(240, 240, 235), Couleur2 = Color3.fromRGB(110, 190, 90),
 	  Oeufs = {
-		oeuf("GO_Fossettes", "à Fossettes", 38, 20,  1,   "T1", Color3.fromRGB(245, 245, 240)),
-		oeuf("GO_Gazon",     "Gazon",       25, 45,  1.7, "T2", Color3.fromRGB(120, 200, 95)),
-		oeuf("GO_Bunker",    "Bunker",      18, 90,  2.6, "T3", Color3.fromRGB(235, 215, 155)),
-		oeuf("GO_Drapeau",   "Drapeau",     11, 180, 4,   "T4", Color3.fromRGB(230, 60, 60)),
-		oeuf("GO_Birdie",    "Birdie",      6,  330, 6.5, "T5", Color3.fromRGB(90, 180, 255)),
-		oeuf("GO_TrouEnUn",  "Trou en un",  2,  780, 15,  "T6", Color3.fromRGB(255, 200, 40)),
+		oeuf("GO_Fossettes", "à Fossettes", 38,   1, "T1", Color3.fromRGB(245, 245, 240)),
+		oeuf("GO_Gazon",     "Gazon",       25, 1.7, "T2", Color3.fromRGB(120, 200, 95)),
+		oeuf("GO_Bunker",    "Bunker",      18, 2.6, "T3", Color3.fromRGB(235, 215, 155)),
+		oeuf("GO_Drapeau",   "Drapeau",     11,   4, "T4", Color3.fromRGB(230, 60, 60)),
+		oeuf("GO_Birdie",    "Birdie",       6, 6.5, "T5", Color3.fromRGB(90, 180, 255)),
+		oeuf("GO_TrouEnUn",  "Trou en un",   2,  15, "T6", Color3.fromRGB(255, 200, 40)),
 	} },
 
 	{ Numero = 3, Sport = "Tennis", ValeurBase = 1600, Taille = 1.6, VitesseGarde = 42, NbGardes = 3,
 	  Couleur = Color3.fromRGB(215, 240, 60), Couleur2 = Color3.fromRGB(250, 250, 250),
 	  Oeufs = {
-		oeuf("TE_Feutree",     "Feutrée",       34, 25,  1,   "T1", Color3.fromRGB(215, 240, 60)),
-		oeuf("TE_Terre",       "Terre battue",  24, 50,  1.8, "T2", Color3.fromRGB(200, 105, 60)),
-		oeuf("TE_Gazon",       "Gazon anglais", 18, 110, 2.8, "T3", Color3.fromRGB(95, 175, 90)),
-		oeuf("TE_Fluo",        "Fluo",          13, 210, 4.2, "T4", Color3.fromRGB(180, 255, 70)),
-		oeuf("TE_TieBreak",    "Tie-break",     8,  400, 7,   "T5", Color3.fromRGB(90, 130, 255)),
-		oeuf("TE_GrandChelem", "Grand Chelem",  3,  900, 16,  "T6", Color3.fromRGB(255, 205, 60)),
+		oeuf("TE_Feutree",     "Feutrée",       34,   1, "T1", Color3.fromRGB(215, 240, 60)),
+		oeuf("TE_Terre",       "Terre battue",  24, 1.8, "T2", Color3.fromRGB(200, 105, 60)),
+		oeuf("TE_Gazon",       "Gazon anglais", 18, 2.8, "T3", Color3.fromRGB(95, 175, 90)),
+		oeuf("TE_Fluo",        "Fluo",          13, 4.2, "T4", Color3.fromRGB(180, 255, 70)),
+		oeuf("TE_TieBreak",    "Tie-break",      8,   7, "T5", Color3.fromRGB(90, 130, 255)),
+		oeuf("TE_GrandChelem", "Grand Chelem",   3,  16, "T6", Color3.fromRGB(255, 205, 60)),
 	} },
 
 	{ Numero = 4, Sport = "Baseball", ValeurBase = 13000, Taille = 1.8, VitesseGarde = 68, NbGardes = 3,
 	  Couleur = Color3.fromRGB(245, 240, 225), Couleur2 = Color3.fromRGB(210, 50, 50),
 	  Oeufs = {
-		oeuf("BA_Couture",   "à Coutures", 32, 30,  1,   "T2", Color3.fromRGB(245, 240, 225)),
-		oeuf("BA_Poussiere", "Poussière",  23, 65,  1.8, "T3", Color3.fromRGB(190, 150, 110)),
-		oeuf("BA_Gant",      "Gant",       18, 130, 2.9, "T4", Color3.fromRGB(150, 95, 50)),
-		oeuf("BA_Batte",     "Batte",      13, 260, 4.5, "T4", Color3.fromRGB(215, 175, 110)),
-		oeuf("BA_Curveball", "Curveball",  9,  480, 7.5, "T5", Color3.fromRGB(120, 190, 255)),
-		oeuf("BA_HomeRun",   "Home Run",   5,  1020, 17, "T6", Color3.fromRGB(255, 120, 60)),
+		oeuf("BA_Couture",   "à Coutures", 32,   1, "T2", Color3.fromRGB(245, 240, 225)),
+		oeuf("BA_Poussiere", "Poussière",  23, 1.8, "T3", Color3.fromRGB(190, 150, 110)),
+		oeuf("BA_Gant",      "Gant",       18, 2.9, "T4", Color3.fromRGB(150, 95, 50)),
+		oeuf("BA_Batte",     "Batte",      13, 4.5, "T4", Color3.fromRGB(215, 175, 110)),
+		oeuf("BA_Curveball", "Curveball",   9, 7.5, "T5", Color3.fromRGB(120, 190, 255)),
+		oeuf("BA_HomeRun",   "Home Run",    5,  17, "T6", Color3.fromRGB(255, 120, 60)),
 	} },
 
 	{ Numero = 5, Sport = "Rugby", ValeurBase = 110000, Taille = 2.4, VitesseGarde = 110, NbGardes = 4,
 	  Couleur = Color3.fromRGB(130, 75, 40), Couleur2 = Color3.fromRGB(245, 245, 245),
 	  Oeufs = {
-		oeuf("RU_Cuir",     "de Cuir",     28, 40,  1,   "T2", Color3.fromRGB(130, 75, 40)),
-		oeuf("RU_Boueuse",  "Boueuse",     22, 80,  1.8, "T3", Color3.fromRGB(105, 90, 60)),
-		oeuf("RU_Maillot",  "Maillot",     18, 160, 2.9, "T4", Color3.fromRGB(60, 80, 180)),
-		oeuf("RU_Melee",    "Mêlée",       14, 300, 4.6, "T5", Color3.fromRGB(200, 60, 60)),
-		oeuf("RU_Drop",     "Drop",        10, 540, 7.5, "T5", Color3.fromRGB(245, 245, 245)),
-		oeuf("RU_Essai",    "Essai",       6,  900, 12,  "T6", Color3.fromRGB(90, 220, 140)),
-		oeuf("RU_ChelemOr", "Chelem d'Or", 2,  1500, 24, "T7", Color3.fromRGB(255, 205, 60)),
+		oeuf("RU_Cuir",     "de Cuir",     28,   1, "T2", Color3.fromRGB(130, 75, 40)),
+		oeuf("RU_Boueuse",  "Boueuse",     22, 1.8, "T3", Color3.fromRGB(105, 90, 60)),
+		oeuf("RU_Maillot",  "Maillot",     18, 2.9, "T4", Color3.fromRGB(60, 80, 180)),
+		oeuf("RU_Melee",    "Mêlée",       14, 4.6, "T5", Color3.fromRGB(200, 60, 60)),
+		oeuf("RU_Drop",     "Drop",        10, 7.5, "T5", Color3.fromRGB(245, 245, 245)),
+		oeuf("RU_Essai",    "Essai",        6,  12, "T6", Color3.fromRGB(90, 220, 140)),
+		oeuf("RU_ChelemOr", "Chelem d'Or",  2,  24, "T7", Color3.fromRGB(255, 205, 60)),
 	} },
 
 	{ Numero = 6, Sport = "Basket", ValeurBase = 950000, Taille = 2.8, VitesseGarde = 175, NbGardes = 4,
 	  Couleur = Color3.fromRGB(235, 115, 30), Couleur2 = Color3.fromRGB(35, 35, 40),
 	  Oeufs = {
-		oeuf("BK_Parquet",  "Parquet",     26, 50,  1,   "T3", Color3.fromRGB(205, 150, 95)),
-		oeuf("BK_Filet",    "Filet",       21, 100, 1.9, "T4", Color3.fromRGB(245, 245, 245)),
-		oeuf("BK_Street",   "Street",      18, 200, 3,   "T4", Color3.fromRGB(70, 70, 80)),
-		oeuf("BK_AlleyOop", "Alley-oop",   14, 380, 4.8, "T5", Color3.fromRGB(90, 200, 255)),
-		oeuf("BK_Dunk",     "Dunk",        11, 660, 8,   "T6", Color3.fromRGB(235, 115, 30)),
-		oeuf("BK_Buzzer",   "Buzzer",      7,  1080, 14, "T7", Color3.fromRGB(255, 70, 90)),
-		oeuf("BK_PanierOr", "Panier d'Or", 3,  1800, 30, "JACKPOT1", Color3.fromRGB(255, 200, 40)),
+		oeuf("BK_Parquet",  "Parquet",     26,   1, "T3",       Color3.fromRGB(205, 150, 95)),
+		oeuf("BK_Filet",    "Filet",       21, 1.9, "T4",       Color3.fromRGB(245, 245, 245)),
+		oeuf("BK_Street",   "Street",      18,   3, "T4",       Color3.fromRGB(70, 70, 80)),
+		oeuf("BK_AlleyOop", "Alley-oop",   14, 4.8, "T5",       Color3.fromRGB(90, 200, 255)),
+		oeuf("BK_Dunk",     "Dunk",        11,   8, "T6",       Color3.fromRGB(235, 115, 30)),
+		oeuf("BK_Buzzer",   "Buzzer",       7,  14, "T7",       Color3.fromRGB(255, 70, 90)),
+		oeuf("BK_PanierOr", "Panier d'Or",  3,  30, "JACKPOT1", Color3.fromRGB(255, 200, 40)),
 	} },
 
 	{ Numero = 7, Sport = "Football", ValeurBase = 8500000, Taille = 2.6, VitesseGarde = 280, NbGardes = 5,
 	  Couleur = Color3.fromRGB(250, 250, 250), Couleur2 = Color3.fromRGB(30, 30, 35),
 	  Oeufs = {
-		oeuf("FO_Hexagone", "Hexagone",    24, 60,  1,   "T3", Color3.fromRGB(250, 250, 250)),
-		oeuf("FO_Nocturne", "Nocturne",    20, 120, 1.9, "T4", Color3.fromRGB(45, 55, 110)),
-		oeuf("FO_Stade",    "Stade",       17, 240, 3,   "T5", Color3.fromRGB(80, 190, 95)),
-		oeuf("FO_Lucarne",  "Lucarne",     14, 450, 4.8, "T5", Color3.fromRGB(150, 230, 255)),
-		oeuf("FO_Penalty",  "Penalty",     11, 780, 8,   "T6", Color3.fromRGB(230, 60, 70)),
-		oeuf("FO_Coupe",    "Coupe",       9,  1320, 15, "T7", Color3.fromRGB(190, 240, 255)),
-		oeuf("FO_BallonOr", "Ballon d'Or", 5,  2700, 40, "JACKPOT2", Color3.fromRGB(255, 205, 60)),
+		oeuf("FO_Hexagone", "Hexagone",    24,   1, "T3",       Color3.fromRGB(250, 250, 250)),
+		oeuf("FO_Nocturne", "Nocturne",    20, 1.9, "T4",       Color3.fromRGB(45, 55, 110)),
+		oeuf("FO_Stade",    "Stade",       17,   3, "T5",       Color3.fromRGB(80, 190, 95)),
+		oeuf("FO_Lucarne",  "Lucarne",     14, 4.8, "T5",       Color3.fromRGB(150, 230, 255)),
+		oeuf("FO_Penalty",  "Penalty",     11,   8, "T6",       Color3.fromRGB(230, 60, 70)),
+		oeuf("FO_Coupe",    "Coupe",        9,  15, "T7",       Color3.fromRGB(190, 240, 255)),
+		oeuf("FO_BallonOr", "Ballon d'Or",  5,  40, "JACKPOT2", Color3.fromRGB(255, 205, 60)),
 	} },
 }
 
@@ -178,10 +198,22 @@ ConfigJeu.Zones = {
 ---------------------------------------------------------------
 ConfigJeu.DesignParId = {}
 ConfigJeu.ZoneDuDesign = {}
+ConfigJeu.NbOeufs = 0
+
+local e = ConfigJeu.Eclosion
 for _, zone in ipairs(ConfigJeu.Zones) do
-	for _, design in ipairs(zone.Oeufs) do
+	for rang, design in ipairs(zone.Oeufs) do
+		design.Zone = zone.Numero
+		design.Rang = rang
+		design.TempsEclosion = e.Perso[design.Id]
+			or math.min(e.TempsMax, math.round(
+				e.TempsDepart
+				* e.FacteurZone ^ (zone.Numero - 1)
+				* e.FacteurRang ^ (rang - 1)
+			))
 		ConfigJeu.DesignParId[design.Id] = design
 		ConfigJeu.ZoneDuDesign[design.Id] = zone.Numero
+		ConfigJeu.NbOeufs += 1
 	end
 end
 
@@ -265,13 +297,8 @@ end
 -- Les plus beaux œufs d'une zone sont un peu plus gros
 function ConfigJeu.TailleOeuf(numeroZone, idDesign)
 	local zone = ConfigJeu.Zones[numeroZone] or ConfigJeu.Zones[1]
-	local rang = 1
-	for i, design in ipairs(zone.Oeufs) do
-		if design.Id == idDesign then
-			rang = i
-			break
-		end
-	end
+	local design = ConfigJeu.DesignParId[idDesign]
+	local rang = (design and design.Rang) or 1
 	return zone.Taille * (1 + (rang - 1) * 0.07)
 end
 
